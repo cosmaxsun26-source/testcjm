@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 기본 정보
+  no              Int?
+  category        String   // 24년사전확보, 26년확보목표
+  customer        String?  // 고객사
+  productName     String   // 제품명
+  labNumber       String?  // 확정 랩넘버
+  bulkCode        String?  // 벌크코드
+  bulkCodeName    String?  // 벌크코드명
+  productType     String?  // 유형: 선크림, 선스틱
+  uvFilterType    String?  // 자차구성: 유기, 무기, 혼용
+  formulation     String?  // 제형: OW, WO, OD
+  spf             String?  // SPF
+  broadSpectrum   String?  // Broad Spectrum: O, X
+  waterResistant  String?  // 지속내수: O, X, -
+  container       String?  // 용기: 튜브, 블로우, 스틱
+  volume          String?  // 용량
+  devTeam         String?  // 개발팀: SC1, SC2, SC3
+  formulator      String?  // 제형담당
+  salesManager    String?  // 영업담당
+
+  // 처방개발
+  devNote         String?  // 처방개발 진행사항
+  targetDate      String?  // 완료 목표일
+  devStatus       String?  // 개발사항: 개발중, 완료
+  formulationConfirmed String? // 제형확정: 확정, 개발중
+  activeIngredients    String? // 주성분구성
+
+  // 임상/시험
+  clinicalTrial   String?  // 임상(기관명) 결과
+  uniiCode        String?  // UNII CODE
+  preservative    String?  // 방부력
+  labBatchCT      String?  // 랩배치 CT
+  tmvTmt          String?  // TMV/TMT
+
+  // 시험생산
+  rawMaterialQual String?  // 원료적격성평가
+  trialMfg        String?  // 시험제조(1배치)
+  trialMfgDate    String?  // 시험제조 날짜
+  bulkShelfLife   String?  // 벌크유효기간검증(BHS)
+  bulkShelfLifeDate String? // BHS 날짜
+  fillingPackaging String?  // 충전/포장
+  labStability    String?  // 랩 Stability(1배치)
+  drugStability   String?  // Drug Stability(1배치,외부기관)
+
+  // 양산/출고
+  productReg      String?  // 제품등록
+  importReg       String?  // Import등록
+  production      String?  // 제품생산(3배치)
+  validation      String?  // 밸리데이션(3배치)
+  drugStability2  String?  // Drug Stability(2배치)
+  shipment        String?  // 고객사 출고 후 제품 출시
+
+  // 프로세스 단계 상태 추적 (pending, in_progress, completed, na)
+  steps ProcessStep[]
+}
+
+model ProcessStep {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stepKey   String   // 단계 식별자
+  status    String   @default("pending") // pending, in_progress, completed, na
+  note      String?
+  dueDate   String?
+  completedDate String?
+
+  @@unique([productId, stepKey])
+}

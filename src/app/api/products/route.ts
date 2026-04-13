@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ALL_STEPS } from "@/lib/constants";
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl;
+  const category = searchParams.get("category");
+  const search = searchParams.get("search");
+  const devTeam = searchParams.get("devTeam");
+
+  const where: Record<string, unknown> = {};
+  if (category) where.category = category;
+  if (devTeam) where.devTeam = devTeam;
+  if (search) {
+    where.OR = [
+      { productName: { contains: search } },
+      { customer: { contains: search } },
+      { labNumber: { contains: search } },
+      { formulator: { contains: search } },
+    ];
+  }
+
+  const products = await prisma.product.findMany({
+    where,
+    include: { steps: true },
+    orderBy: { no: "asc" },
+  });
+
+  return NextResponse.json(products);
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+
+  const product = await prisma.product.create({
+    data: {
+      ...body,
+      steps: {
+        create: ALL_STEPS.map((step) => ({
+          stepKey: step.key,
+          status: "pending",
+        })),
+      },
+    },
+    include: { steps: true },
+  });
+
+  return NextResponse.json(product, { status: 201 });
+}
