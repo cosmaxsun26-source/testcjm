@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:setup": "cp -n .env.example .env 2>/dev/null; prisma migrate dev && node prisma/seed.mjs",
+    "db:seed": "node prisma/seed.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.2",
@@ -14,6 +17,7 @@
     "@prisma/adapter-libsql": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "better-sqlite3": "^12.9.0",
+    "dotenv": "^17.4.2",
     "next": "16.2.3",
     "prisma": "^7.7.0",
     "react": "19.2.4",
