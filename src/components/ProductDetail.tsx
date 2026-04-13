@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PROCESS_PHASES, CATEGORIES, UV_FILTER_TYPES, FORMULATION_TYPES, PRODUCT_TYPES, CONTAINER_TYPES, DEV_TEAMS } from "@/lib/constants";
+
+interface StepFile {
+  id: number;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  uploadedAt: string | Date;
+}
 
 interface ProcessStep {
   id: number;
@@ -12,6 +20,7 @@ interface ProcessStep {
   note: string | null;
   dueDate: string | null;
   completedDate: string | null;
+  files: StepFile[];
 }
 
 interface Product {
@@ -322,39 +331,124 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                 {phase.name}
                 <span className="text-gray-400 font-normal ml-2">{phase.duration}</span>
               </h2>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-3">
                 {phase.steps.map((stepDef) => {
                   const step = steps.find((s) => s.stepKey === stepDef.key);
                   const status = step?.status || "pending";
+                  const files = step?.files || [];
                   return (
                     <div
                       key={stepDef.key}
-                      className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-gray-50"
+                      className="py-2 px-3 rounded border border-gray-100 hover:border-gray-200"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800">
-                          {stepDef.label}
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                            status === "completed" ? "bg-green-500" : "bg-red-400"
+                          }`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800">
+                            {stepDef.label}
+                          </div>
+                          <div className="text-xs text-gray-400">{stepDef.team}</div>
                         </div>
-                        <div className="text-xs text-gray-400">{stepDef.team}</div>
+                        <select
+                          className={`text-xs rounded-full px-3 py-1 border-0 font-medium ${
+                            status === "completed"
+                              ? "bg-green-100 text-green-700"
+                              : status === "in_progress"
+                              ? "bg-blue-100 text-blue-700"
+                              : status === "na"
+                              ? "bg-gray-50 text-gray-400"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                          value={status}
+                          onChange={(e) => updateStep(stepDef.key, e.target.value)}
+                        >
+                          <option value="pending">미진행</option>
+                          <option value="in_progress">진행중</option>
+                          <option value="completed">완료</option>
+                          <option value="na">해당없음</option>
+                        </select>
                       </div>
-                      <select
-                        className={`text-xs rounded-full px-3 py-1 border-0 font-medium ${
-                          status === "completed"
-                            ? "bg-green-100 text-green-700"
-                            : status === "in_progress"
-                            ? "bg-blue-100 text-blue-700"
-                            : status === "na"
-                            ? "bg-gray-50 text-gray-400"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                        value={status}
-                        onChange={(e) => updateStep(stepDef.key, e.target.value)}
-                      >
-                        <option value="pending">미진행</option>
-                        <option value="in_progress">진행중</option>
-                        <option value="completed">완료</option>
-                        <option value="na">해당없음</option>
-                      </select>
+
+                      {/* 파일 목록 */}
+                      {files.length > 0 && (
+                        <div className="mt-2 ml-6 space-y-1">
+                          {files.map((f) => (
+                            <div key={f.id} className="flex items-center gap-2 text-xs text-gray-600">
+                              <span className="text-green-600">&#128196;</span>
+                              <a
+                                href={`/api/files/${f.id}`}
+                                className="hover:text-blue-600 hover:underline truncate max-w-[200px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {f.originalName}
+                              </a>
+                              <span className="text-gray-400">
+                                ({(f.fileSize / 1024).toFixed(0)}KB)
+                              </span>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`"${f.originalName}" 파일을 삭제하시겠습니까?`)) return;
+                                  await fetch(`/api/files/${f.id}`, { method: "DELETE" });
+                                  router.refresh();
+                                  // 로컬 상태도 업데이트
+                                  setSteps((prev) =>
+                                    prev.map((s) =>
+                                      s.stepKey === stepDef.key
+                                        ? {
+                                            ...s,
+                                            files: s.files.filter((sf) => sf.id !== f.id),
+                                            status: s.files.length <= 1 ? "pending" : s.status,
+                                          }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                className="text-red-400 hover:text-red-600 ml-1"
+                              >
+                                x
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 파일 업로드 */}
+                      {step && status !== "na" && (
+                        <div className="mt-2 ml-6">
+                          <label className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer">
+                            <span>+ 파일 첨부</span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const fd = new FormData();
+                                fd.append("file", file);
+                                fd.append("productId", String(step.productId));
+                                fd.append("stepKey", stepDef.key);
+                                const res = await fetch("/api/files", { method: "POST", body: fd });
+                                if (res.ok) {
+                                  const newFile = await res.json();
+                                  setSteps((prev) =>
+                                    prev.map((s) =>
+                                      s.stepKey === stepDef.key
+                                        ? { ...s, status: "completed", files: [...s.files, newFile] }
+                                        : s
+                                    )
+                                  );
+                                  router.refresh();
+                                }
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -77,6 +77,17 @@ model ProcessStep {
   note      String?
   dueDate   String?
   completedDate String?
+  files     StepFile[]
 
   @@unique([productId, stepKey])
+}
+
+model StepFile {
+  id          Int         @id @default(autoincrement())
+  stepId      Int
+  step        ProcessStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  fileName    String      // 저장된 파일명
+  originalName String     // 원본 파일명
+  fileSize    Int         // 바이트
+  uploadedAt  DateTime    @default(now())
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ProgressBar from "./ProgressBar";
 import StatusBadge from "./StatusBadge";
@@ -10,6 +9,7 @@ interface ProcessStep {
   id: number;
   stepKey: string;
   status: string;
+  files: { id: number }[];
 }
 
 interface Product {
@@ -28,25 +28,80 @@ interface Product {
   steps: ProcessStep[];
 }
 
+type SortKey = "devTeam" | "uvFilterType" | "formulator" | null;
+type SortDir = "asc" | "desc";
+
+const KEY_STEPS = [
+  { key: "lab_batch_ct", label: "랩배치CT" },
+  { key: "preservative", label: "방부력" },
+  { key: "tmv_tmt", label: "TMV/TMT" },
+  { key: "trial_mfg", label: "시험제조" },
+] as const;
+
+function StepLight({ steps, stepKey }: { steps: ProcessStep[]; stepKey: string }) {
+  const step = steps.find((s) => s.stepKey === stepKey);
+  const done = step?.status === "completed";
+  const hasFiles = step?.files && step.files.length > 0;
+  const fileCount = step?.files?.length || 0;
+  return (
+    <span
+      className={`inline-block w-2.5 h-2.5 rounded-full ${
+        done ? "bg-green-500" : "bg-red-400"
+      }`}
+      title={done ? `완료${hasFiles ? ` (파일 ${fileCount}개)` : ""}` : "미완료"}
+    />
+  );
+}
+
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <span className="text-gray-300 ml-0.5">↕</span>;
+  return <span className="text-blue-600 ml-0.5">{dir === "asc" ? "↑" : "↓"}</span>;
+}
+
 export default function ProductList({ initialProducts }: { initialProducts: Product[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const filtered = initialProducts.filter((p) => {
-    if (categoryFilter && p.category !== categoryFilter) return false;
-    if (teamFilter && p.devTeam !== teamFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        p.productName.toLowerCase().includes(q) ||
-        p.formulator?.toLowerCase().includes(q) ||
-        p.customer?.toLowerCase().includes(q)
-      );
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDir === "asc") setSortDir("desc");
+      else { setSortKey(null); setSortDir("asc"); }
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
     }
-    return true;
-  });
+  };
+
+  const filtered = useMemo(() => {
+    let list = initialProducts.filter((p) => {
+      if (categoryFilter && p.category !== categoryFilter) return false;
+      if (teamFilter && p.devTeam !== teamFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          p.productName.toLowerCase().includes(q) ||
+          p.formulator?.toLowerCase().includes(q) ||
+          p.customer?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+
+    if (sortKey) {
+      list = [...list].sort((a, b) => {
+        const va = (a[sortKey] || "").toLowerCase();
+        const vb = (b[sortKey] || "").toLowerCase();
+        const cmp = va.localeCompare(vb, "ko");
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+
+    return list;
+  }, [initialProducts, categoryFilter, teamFilter, search, sortKey, sortDir]);
 
   const getOverallStatus = (steps: ProcessStep[]) => {
     const active = steps.filter((s) => s.status !== "na");
@@ -60,6 +115,16 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
     await fetch(`/api/products/${id}`, { method: "DELETE" });
     router.refresh();
   };
+
+  const SortableHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <th
+      className="px-3 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-blue-600"
+      onClick={() => handleSort(field)}
+    >
+      {label}
+      <SortIcon active={sortKey === field} dir={sortDir} />
+    </th>
+  );
 
   return (
     <div>
@@ -96,19 +161,24 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
         총 {filtered.length}개 제품
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b text-left">
               <th className="px-3 py-2 font-medium text-gray-600">No</th>
               <th className="px-3 py-2 font-medium text-gray-600">제품명</th>
               <th className="px-3 py-2 font-medium text-gray-600">유형</th>
-              <th className="px-3 py-2 font-medium text-gray-600">자차</th>
+              <SortableHeader label="자차" field="uvFilterType" />
               <th className="px-3 py-2 font-medium text-gray-600">SPF</th>
-              <th className="px-3 py-2 font-medium text-gray-600">팀</th>
-              <th className="px-3 py-2 font-medium text-gray-600">담당</th>
+              <SortableHeader label="팀" field="devTeam" />
+              <SortableHeader label="담당" field="formulator" />
               <th className="px-3 py-2 font-medium text-gray-600">목표일</th>
-              <th className="px-3 py-2 font-medium text-gray-600 w-32">진행률</th>
+              {KEY_STEPS.map((s) => (
+                <th key={s.key} className="px-2 py-2 font-medium text-gray-600 text-center text-xs">
+                  {s.label}
+                </th>
+              ))}
+              <th className="px-3 py-2 font-medium text-gray-600 w-28">진행률</th>
               <th className="px-3 py-2 font-medium text-gray-600">상태</th>
               <th className="px-3 py-2 font-medium text-gray-600"></th>
             </tr>
@@ -130,6 +200,11 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
                 <td className="px-3 py-2 text-gray-600">{p.devTeam || "-"}</td>
                 <td className="px-3 py-2 text-gray-600">{p.formulator || "-"}</td>
                 <td className="px-3 py-2 text-gray-600">{p.targetDate || "-"}</td>
+                {KEY_STEPS.map((s) => (
+                  <td key={s.key} className="px-2 py-2 text-center">
+                    <StepLight steps={p.steps} stepKey={s.key} />
+                  </td>
+                ))}
                 <td className="px-3 py-2">
                   <ProgressBar steps={p.steps} />
                 </td>

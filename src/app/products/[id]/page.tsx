@@ -25,7 +25,7 @@ export default async function ProductPage({
 
   const product = await prisma.product.findUnique({
     where: { id: parseInt(id) },
-    include: { steps: true },
+    include: { steps: { include: { files: true } } },
   });
 
   if (!product) notFound();

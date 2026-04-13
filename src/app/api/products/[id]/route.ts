@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params;
   const product = await prisma.product.findUnique({
     where: { id: parseInt(id) },
-    include: { steps: true },
+    include: { steps: { include: { files: true } } },
   });
 
   if (!product) {
@@ -29,7 +29,7 @@ export async function PUT(
   const product = await prisma.product.update({
     where: { id: parseInt(id) },
     data: productData,
-    include: { steps: true },
+    include: { steps: { include: { files: true } } },
   });
 
   if (steps && Array.isArray(steps)) {
@@ -61,7 +61,7 @@ export async function PUT(
 
   const updated = await prisma.product.findUnique({
     where: { id: parseInt(id) },
-    include: { steps: true },
+    include: { steps: { include: { files: true } } },
   });
 
   return NextResponse.json(updated);

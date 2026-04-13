@@ -45,6 +45,9 @@ next-env.d.ts
 # local database
 dev.db
 
+# uploaded files
+/uploads
+
 # original excel data
 *.xlsx
 

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const products = await prisma.product.findMany({
-    include: { steps: true },
+    include: { steps: { include: { files: true } } },
     orderBy: { no: "asc" },
   });
 

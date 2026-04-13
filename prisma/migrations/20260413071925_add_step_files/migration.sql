@@ -1,0 +1,10 @@
+-- CreateTable
+CREATE TABLE "StepFile" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "stepId" INTEGER NOT NULL,
+    "fileName" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "fileSize" INTEGER NOT NULL,
+    "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "StepFile_stepId_fkey" FOREIGN KEY ("stepId") REFERENCES "ProcessStep" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
