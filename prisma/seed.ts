@@ -1,6 +1,14 @@
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "../src/lib/password";
 import { PrismaClient } from "../src/generated/prisma";
 
-const prisma = new PrismaClient();
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 const ALL_STEP_KEYS = [
   "formulation_dev", "formulation_confirm", "active_ingredients", "clinical_trial",
@@ -535,9 +543,29 @@ const products: SeedProduct[] = [
 async function main() {
   console.log("Seeding database...");
 
+  const adminEmail = (process.env.AUTH_ADMIN_EMAIL ?? "admin@example.com").toLowerCase();
+  const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? "change-me-now";
+  const adminName = process.env.AUTH_ADMIN_NAME ?? "관리자";
+
   // Clear existing data
+  await prisma.stepHistory.deleteMany();
   await prisma.processStep.deleteMany();
   await prisma.product.deleteMany();
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      name: adminName,
+      passwordHash: await hashPassword(adminPassword),
+      role: "admin",
+    },
+    create: {
+      email: adminEmail,
+      name: adminName,
+      passwordHash: await hashPassword(adminPassword),
+      role: "admin",
+    },
+  });
 
   for (const p of products) {
     const { stepStatuses, ...productData } = p;
@@ -557,6 +585,7 @@ async function main() {
     console.log(`  Created: ${product.productName}`);
   }
 
+  console.log(`  Admin user: ${adminEmail}`);
   console.log("Seeding complete!");
 }
 

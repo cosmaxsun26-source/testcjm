@@ -1,13 +1,15 @@
+import 'dotenv/config';
+import { hash } from 'bcryptjs';
 import { createRequire } from 'module';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-const dbPath = resolve(__dirname, '..', 'dev.db');
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set');
+}
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
 const { PrismaClient } = require('../src/generated/prisma');
 const prisma = new PrismaClient({ adapter });
@@ -362,8 +364,28 @@ const products = [
 async function main() {
   console.log("Seeding database...");
 
+  const adminEmail = (process.env.AUTH_ADMIN_EMAIL ?? "admin@example.com").toLowerCase();
+  const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? "change-me-now";
+  const adminName = process.env.AUTH_ADMIN_NAME ?? "관리자";
+
+  await prisma.stepHistory.deleteMany();
   await prisma.processStep.deleteMany();
   await prisma.product.deleteMany();
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      name: adminName,
+      passwordHash: await hash(adminPassword, 12),
+      role: "admin",
+    },
+    create: {
+      email: adminEmail,
+      name: adminName,
+      passwordHash: await hash(adminPassword, 12),
+      role: "admin",
+    },
+  });
 
   for (const p of products) {
     const { stepStatuses, ...productData } = p;
@@ -383,6 +405,7 @@ async function main() {
     console.log(`  Created: ${product.productName}`);
   }
 
+  console.log(`  Admin user: ${adminEmail}`);
   console.log("Seeding complete!");
 }
 

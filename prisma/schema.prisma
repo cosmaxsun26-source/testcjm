@@ -4,7 +4,13 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+}
+
+enum UserRole {
+  viewer
+  editor
+  admin
 }
 
 model Product {
@@ -65,29 +71,60 @@ model Product {
   shipment        String?  // 고객사 출고 후 제품 출시
 
   // 프로세스 단계 상태 추적 (pending, in_progress, completed, na)
-  steps ProcessStep[]
+  steps     ProcessStep[]
+  histories StepHistory[]
 }
 
 model ProcessStep {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  stepKey   String   // 단계 식별자
-  status    String   @default("pending") // pending, in_progress, completed, na
-  note      String?
-  dueDate   String?
+  id            Int           @id @default(autoincrement())
+  productId     Int
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stepKey       String        // 단계 식별자
+  status        String        @default("pending") // pending, in_progress, completed, na
+  note          String?
+  dueDate       String?
   completedDate String?
-  files     StepFile[]
+  files         StepFile[]
+  histories     StepHistory[]
 
   @@unique([productId, stepKey])
 }
 
 model StepFile {
-  id          Int         @id @default(autoincrement())
-  stepId      Int
-  step        ProcessStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  fileName    String      // 저장된 파일명
+  id           Int         @id @default(autoincrement())
+  stepId       Int
+  step         ProcessStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  fileName     String      // 저장된 파일명
   originalName String     // 원본 파일명
-  fileSize    Int         // 바이트
-  uploadedAt  DateTime    @default(now())
+  fileSize     Int         // 바이트
+  uploadedAt   DateTime    @default(now())
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  role         UserRole      @default(viewer)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  histories    StepHistory[]
+}
+
+model StepHistory {
+  id              Int         @id @default(autoincrement())
+  stepId          Int
+  productId       Int
+  oldStatus       String?
+  newStatus       String
+  changedByUserId String?
+  changedAt       DateTime    @default(now())
+  note            String?
+  step            ProcessStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changedBy       User?       @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([productId, changedAt])
+  @@index([stepId, changedAt])
+  @@index([changedByUserId])
 }
