@@ -17,9 +17,9 @@ export default async function StabilityOverviewPage() {
 
   const rows = products
     .map((p) => {
+      const doneBy = (bt: string) =>
+        p.stabilityReports.filter((r) => r.batchType === bt && r.status === "completed").length;
       const completed = p.stabilityReports.filter((r) => r.status === "completed").length;
-      const trialDone = p.stabilityReports.filter((r) => r.batchType === "trial" && r.status === "completed").length;
-      const prodDone = p.stabilityReports.filter((r) => r.batchType === "production" && r.status === "completed").length;
       return {
         id: p.id,
         no: p.no,
@@ -27,8 +27,9 @@ export default async function StabilityOverviewPage() {
         customer: p.customer,
         formulator: p.formulator,
         completed,
-        trialDone,
-        prodDone,
+        trialDone: doneBy("trial"),
+        prod1Done: doneBy("production_1"),
+        prod2Done: doneBy("production_2"),
       };
     })
     .sort((a, b) => b.completed - a.completed);
@@ -52,7 +53,7 @@ export default async function StabilityOverviewPage() {
           <Card label="전체 제품" value={rows.length} />
           <Card label="시험 진행 중" value={withAny} sub={`≥1건 제출`} />
           <Card label="제출된 보고서" value={totalCompleted} sub={`/ 총 ${rows.length * TOTAL_CELLS}`} />
-          <Card label="타임포인트" value={TOTAL_CELLS} sub="배치 2 × 시점 6" />
+          <Card label="타임포인트" value={TOTAL_CELLS} sub="배치 3 × 시점 6" />
         </section>
 
         <section className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
@@ -64,7 +65,8 @@ export default async function StabilityOverviewPage() {
                 <th className="px-3 py-2 text-left">고객사</th>
                 <th className="px-3 py-2 text-left">제형담당</th>
                 <th className="px-3 py-2 text-center">시험생산</th>
-                <th className="px-3 py-2 text-center">본생산</th>
+                <th className="px-3 py-2 text-center">본생산 1차</th>
+                <th className="px-3 py-2 text-center">본생산 2차</th>
                 <th className="px-3 py-2 text-right">진행률</th>
                 <th className="px-3 py-2"></th>
               </tr>
@@ -86,7 +88,10 @@ export default async function StabilityOverviewPage() {
                       {r.trialDone} / {STABILITY_TIMEPOINTS.length}
                     </td>
                     <td className="px-3 py-2 text-center text-gray-700">
-                      {r.prodDone} / {STABILITY_TIMEPOINTS.length}
+                      {r.prod1Done} / {STABILITY_TIMEPOINTS.length}
+                    </td>
+                    <td className="px-3 py-2 text-center text-gray-700">
+                      {r.prod2Done} / {STABILITY_TIMEPOINTS.length}
                     </td>
                     <td className="px-3 py-2 text-right text-gray-600 w-32">
                       <div className="flex items-center gap-2">

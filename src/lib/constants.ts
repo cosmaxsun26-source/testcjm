@@ -52,12 +52,13 @@ export const FILE_UPLOADABLE_STEPS: readonly string[] = [
   "tmv_tmt",
 ];
 
-// Drug Stability: 2 배치 × 6 타임포인트 = 12 데이터 포인트
-export const STABILITY_BATCH_TYPES = ["trial", "production"] as const;
+// Drug Stability: 시험생산 1배치 + 본생산 2배치 = 총 3 배치 × 6 타임포인트 = 18 셀
+export const STABILITY_BATCH_TYPES = ["trial", "production_1", "production_2"] as const;
 export type StabilityBatchType = (typeof STABILITY_BATCH_TYPES)[number];
 export const STABILITY_BATCH_LABELS: Record<StabilityBatchType, string> = {
   trial: "시험생산 (1배치)",
-  production: "본생산 (2배치 이후)",
+  production_1: "본생산 1차",
+  production_2: "본생산 2차",
 };
 
 export const STABILITY_TIMEPOINTS = ["3m", "6m", "9m", "12m", "18m", "24m"] as const;
