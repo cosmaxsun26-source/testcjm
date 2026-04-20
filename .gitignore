@@ -54,3 +54,7 @@ dev.db
 
 # claude local config
 .claude/
+.gstack/
+
+# Private Excel samples (company OTC product data)
+docs/excel-sample/*.xlsx
