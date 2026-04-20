@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { requireSession, requireEditor, requireAdmin } from "@/lib/auth-helpers";
 import { recordStatusChange } from "@/lib/audit";
 
+function parseProductId(raw: string) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    return { id: null as null, error: NextResponse.json({ error: "Invalid id" }, { status: 400 }) };
+  }
+  return { id: n, error: null };
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -10,9 +18,12 @@ export async function GET(
   const { error } = await requireSession();
   if (error) return error;
 
-  const { id } = await params;
+  const { id: raw } = await params;
+  const { id, error: idError } = parseProductId(raw);
+  if (idError) return idError;
+
   const product = await prisma.product.findUnique({
-    where: { id: parseInt(id) },
+    where: { id },
     include: { steps: { include: { files: true } } },
   });
 
@@ -30,8 +41,15 @@ export async function PUT(
   const { session, error } = await requireEditor();
   if (error) return error;
 
-  const { id } = await params;
-  const productId = parseInt(id);
+  const { id: raw } = await params;
+  const { id: productId, error: idError } = parseProductId(raw);
+  if (idError) return idError;
+
+  const existing = await prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const body = await request.json();
   const { steps, ...productData } = body;
 
@@ -97,10 +115,15 @@ export async function DELETE(
   const { error } = await requireAdmin();
   if (error) return error;
 
-  const { id } = await params;
-  await prisma.product.delete({
-    where: { id: parseInt(id) },
-  });
+  const { id: raw } = await params;
+  const { id, error: idError } = parseProductId(raw);
+  if (idError) return idError;
 
+  const existing = await prisma.product.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.product.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

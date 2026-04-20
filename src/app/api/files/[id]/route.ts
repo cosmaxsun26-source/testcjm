@@ -5,6 +5,14 @@ import path from "path";
 import { requireSession, requireEditor } from "@/lib/auth-helpers";
 import { recordStatusChange } from "@/lib/audit";
 
+function parseFileId(raw: string) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    return { id: null as null, error: NextResponse.json({ error: "Invalid id" }, { status: 400 }) };
+  }
+  return { id: n, error: null };
+}
+
 // 파일 다운로드
 export async function GET(
   _request: NextRequest,
@@ -13,9 +21,12 @@ export async function GET(
   const { error } = await requireSession();
   if (error) return error;
 
-  const { id } = await params;
+  const { id: raw } = await params;
+  const { id, error: idError } = parseFileId(raw);
+  if (idError) return idError;
+
   const stepFile = await prisma.stepFile.findUnique({
-    where: { id: parseInt(id) },
+    where: { id },
     include: { step: true },
   });
 
@@ -52,9 +63,12 @@ export async function DELETE(
   const { session, error } = await requireEditor();
   if (error) return error;
 
-  const { id } = await params;
+  const { id: raw } = await params;
+  const { id, error: idError } = parseFileId(raw);
+  if (idError) return idError;
+
   const stepFile = await prisma.stepFile.findUnique({
-    where: { id: parseInt(id) },
+    where: { id },
     include: { step: { include: { files: true } } },
   });
 
@@ -76,7 +90,7 @@ export async function DELETE(
   const shouldRevert = remainingFiles <= 0;
 
   await prisma.$transaction(async (tx) => {
-    await tx.stepFile.delete({ where: { id: parseInt(id) } });
+    await tx.stepFile.delete({ where: { id } });
 
     if (shouldRevert) {
       await tx.processStep.update({
