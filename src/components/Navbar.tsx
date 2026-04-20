@@ -19,6 +19,9 @@ export default async function Navbar() {
           <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
             대시보드
           </Link>
+          <Link href="/stability" className="text-sm text-gray-600 hover:text-gray-900">
+            Drug Stability
+          </Link>
           {isAdmin ? (
             <>
               <Link href="/admin/import" className="text-sm text-gray-600 hover:text-gray-900">
