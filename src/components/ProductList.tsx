@@ -58,15 +58,49 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return <span className="text-blue-600 ml-0.5">{dir === "asc" ? "↑" : "↓"}</span>;
 }
 
+function SortableHeader({
+  label,
+  field,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  field: Exclude<SortKey, null>;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  onSort: (key: Exclude<SortKey, null>) => void;
+}) {
+  return (
+    <th
+      className="px-3 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-blue-600"
+      onClick={() => onSort(field)}
+    >
+      {label}
+      <SortIcon active={sortKey === field} dir={sortDir} />
+    </th>
+  );
+}
+
+function getOverallStatus(steps: ProcessStep[]) {
+  const active = steps.filter((s) => s.status !== "na");
+  if (active.length > 0 && active.every((s) => s.status === "completed")) return "completed";
+  if (active.some((s) => s.status === "in_progress" || s.status === "completed")) return "in_progress";
+  return "pending";
+}
+
 export default function ProductList({ initialProducts }: { initialProducts: Product[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("");
+  const [formulatorFilter, setFormulatorFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const handleSort = (key: SortKey) => {
+  const handleSort = (key: Exclude<SortKey, null>) => {
     if (sortKey === key) {
       if (sortDir === "asc") setSortDir("desc");
       else { setSortKey(null); setSortDir("asc"); }
@@ -76,10 +110,37 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
     }
   };
 
+  const customerOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          initialProducts
+            .map((p) => p.customer)
+            .filter((c): c is string => !!c && c.trim() !== "")
+        )
+      ).sort((a, b) => a.localeCompare(b, "ko")),
+    [initialProducts]
+  );
+
+  const formulatorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          initialProducts
+            .map((p) => p.formulator)
+            .filter((f): f is string => !!f && f.trim() !== "")
+        )
+      ).sort((a, b) => a.localeCompare(b, "ko")),
+    [initialProducts]
+  );
+
   const filtered = useMemo(() => {
     let list = initialProducts.filter((p) => {
       if (categoryFilter && p.category !== categoryFilter) return false;
       if (teamFilter && p.devTeam !== teamFilter) return false;
+      if (customerFilter && p.customer !== customerFilter) return false;
+      if (formulatorFilter && p.formulator !== formulatorFilter) return false;
+      if (statusFilter && getOverallStatus(p.steps) !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -101,14 +162,17 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
     }
 
     return list;
-  }, [initialProducts, categoryFilter, teamFilter, search, sortKey, sortDir]);
-
-  const getOverallStatus = (steps: ProcessStep[]) => {
-    const active = steps.filter((s) => s.status !== "na");
-    if (active.every((s) => s.status === "completed")) return "completed";
-    if (active.some((s) => s.status === "in_progress" || s.status === "completed")) return "in_progress";
-    return "pending";
-  };
+  }, [
+    initialProducts,
+    categoryFilter,
+    teamFilter,
+    customerFilter,
+    formulatorFilter,
+    statusFilter,
+    search,
+    sortKey,
+    sortDir,
+  ]);
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`"${name}" 제품을 삭제하시겠습니까?`)) return;
@@ -116,19 +180,26 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
     router.refresh();
   };
 
-  const SortableHeader = ({ label, field }: { label: string; field: SortKey }) => (
-    <th
-      className="px-3 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-blue-600"
-      onClick={() => handleSort(field)}
-    >
-      {label}
-      <SortIcon active={sortKey === field} dir={sortDir} />
-    </th>
-  );
+  const hasActiveFilter =
+    !!search ||
+    !!categoryFilter ||
+    !!teamFilter ||
+    !!customerFilter ||
+    !!formulatorFilter ||
+    !!statusFilter;
+
+  const resetFilters = () => {
+    setSearch("");
+    setCategoryFilter("");
+    setTeamFilter("");
+    setCustomerFilter("");
+    setFormulatorFilter("");
+    setStatusFilter("");
+  };
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-3">
         <input
           type="text"
           placeholder="제품명, 담당자 검색..."
@@ -155,10 +226,48 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
           <option value="SC2">SC2</option>
           <option value="SC3">SC3</option>
         </select>
+        <select
+          className="border rounded-md px-3 py-1.5 text-sm"
+          value={customerFilter}
+          onChange={(e) => setCustomerFilter(e.target.value)}
+        >
+          <option value="">전체 고객사</option>
+          {customerOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          className="border rounded-md px-3 py-1.5 text-sm"
+          value={formulatorFilter}
+          onChange={(e) => setFormulatorFilter(e.target.value)}
+        >
+          <option value="">전체 제형담당</option>
+          {formulatorOptions.map((f) => (
+            <option key={f} value={f}>{f}</option>
+          ))}
+        </select>
+        <select
+          className="border rounded-md px-3 py-1.5 text-sm"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">전체 상태</option>
+          <option value="pending">미진행</option>
+          <option value="in_progress">진행중</option>
+          <option value="completed">완료</option>
+        </select>
       </div>
 
-      <div className="text-sm text-gray-500 mb-3">
-        총 {filtered.length}개 제품
+      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+        <span>총 {filtered.length}개 제품</span>
+        {hasActiveFilter ? (
+          <button
+            onClick={resetFilters}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            필터 초기화
+          </button>
+        ) : null}
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
@@ -168,10 +277,10 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
               <th className="px-3 py-2 font-medium text-gray-600">No</th>
               <th className="px-3 py-2 font-medium text-gray-600">제품명</th>
               <th className="px-3 py-2 font-medium text-gray-600">유형</th>
-              <SortableHeader label="자차" field="uvFilterType" />
+              <SortableHeader label="자차" field="uvFilterType" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <th className="px-3 py-2 font-medium text-gray-600">SPF</th>
-              <SortableHeader label="팀" field="devTeam" />
-              <SortableHeader label="담당" field="formulator" />
+              <SortableHeader label="팀" field="devTeam" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="담당" field="formulator" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <th className="px-3 py-2 font-medium text-gray-600">목표일</th>
               {KEY_STEPS.map((s) => (
                 <th key={s.key} className="px-2 py-2 font-medium text-gray-600 text-center text-xs">
