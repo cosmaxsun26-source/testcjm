@@ -76,6 +76,7 @@ model Product {
   steps     ProcessStep[]
   histories StepHistory[]
   stabilityReports StabilityReport[]
+  stabilityBatches StabilityBatch[]
 }
 
 model ProcessStep {
@@ -130,6 +131,20 @@ model StabilityFile {
   originalName String
   fileSize     Int
   uploadedAt   DateTime        @default(now())
+}
+
+// 배치별 안정성 시험 시작일. 이 시작일을 기준으로 3·6·9·12·18·24개월
+// 예상 제출일이 계산되고, 30일 유예가 지나면 신호등이 red로 전환.
+model StabilityBatch {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchType   String   // "trial" | "production_1" | "production_2"
+  startDate   String?  // YYYY-MM-DD
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, batchType])
 }
 
 model User {
