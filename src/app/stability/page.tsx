@@ -82,6 +82,7 @@ export default async function StabilityOverviewPage() {
                 <th className="px-3 py-2 text-left">제품명</th>
                 <th className="px-3 py-2 text-left">고객사</th>
                 <th className="px-3 py-2 text-left">제형담당</th>
+                <th className="px-3 py-2 text-center">업데이트상황</th>
                 <th className="px-3 py-2 text-center">시험생산</th>
                 <th className="px-3 py-2 text-center">본생산 1차</th>
                 <th className="px-3 py-2 text-center">본생산 2차</th>
@@ -96,25 +97,25 @@ export default async function StabilityOverviewPage() {
                   <tr key={r.id} className={`border-b hover:bg-gray-50 ${r.hasRed ? "bg-red-50/30" : ""}`}>
                     <td className="px-3 py-2 text-gray-500">{r.no ?? "-"}</td>
                     <td className="px-3 py-2 font-medium text-gray-900 max-w-[280px] truncate">
-                      <span className="inline-flex items-center gap-2">
-                        {r.hasRed ? (
-                          <span
-                            className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 shrink-0"
-                            title="목표일 +30일 경과 (지연)"
-                          />
-                        ) : null}
-                        <Link href={`/stability/${r.id}`} className="hover:underline">
-                          {r.productName}
-                        </Link>
-                        {r.hasRed ? (
-                          <span className="inline-flex rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
-                            지연
-                          </span>
-                        ) : null}
-                      </span>
+                      <Link href={`/stability/${r.id}`} className="hover:underline">
+                        {r.productName}
+                      </Link>
                     </td>
                     <td className="px-3 py-2 text-gray-600">{r.customer ?? "-"}</td>
                     <td className="px-3 py-2 text-gray-600">{r.formulator ?? "-"}</td>
+                    <td className="px-3 py-2 text-center">
+                      {r.hasRed ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-700"
+                          title="목표일 +30일 경과 (지연)"
+                        >
+                          <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                          지연
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-center text-gray-700">
                       {r.trialDone} / {STABILITY_TIMEPOINTS.length}
                     </td>
