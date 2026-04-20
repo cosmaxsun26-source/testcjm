@@ -50,7 +50,7 @@ export const STEP_STATUS_OPTIONS = [
   { value: "na", label: "해당없음", color: "bg-gray-100 text-gray-400" },
 ] as const;
 
-export const UV_FILTER_TYPES = ["유기", "무기", "혼용"] as const;
+export const UV_FILTER_TYPES = ["유기", "무기", "혼용", "혼합", "유무기", "복합"] as const;
 export const FORMULATION_TYPES = ["OW", "WO", "OD"] as const;
 export const PRODUCT_TYPES = ["선크림", "선스틱"] as const;
 export const CONTAINER_TYPES = ["튜브", "블로우", "스틱"] as const;

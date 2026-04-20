@@ -131,6 +131,12 @@ export default function ProductDetail({ product }: { product: Product | null }) 
     );
   };
 
+  const updateStepDueDate = (stepKey: string, dueDate: string) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.stepKey === stepKey ? { ...s, dueDate: dueDate || null } : s))
+    );
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -364,6 +370,18 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                           </div>
                           <div className="text-xs text-gray-400">{stepDef.team}</div>
                         </div>
+                        <label className="flex items-center gap-1 text-xs text-gray-500">
+                          <span className="hidden md:inline">목표일</span>
+                          <input
+                            type="date"
+                            className={`rounded border px-1.5 py-0.5 text-xs ${
+                              overdue ? "border-red-400 text-red-700" : "border-gray-200 text-gray-600"
+                            }`}
+                            value={step?.dueDate ?? ""}
+                            onChange={(e) => updateStepDueDate(stepDef.key, e.target.value)}
+                            disabled={!step}
+                          />
+                        </label>
                         <select
                           className={`text-xs rounded-full px-3 py-1 border-0 font-medium ${
                             status === "completed"
