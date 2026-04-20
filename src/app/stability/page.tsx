@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Navbar from "@/components/Navbar";
 import { STABILITY_BATCH_TYPES, STABILITY_TIMEPOINTS } from "@/lib/constants";
-import { hasRedStability } from "@/lib/stability-dates";
+import { hasDelayedStability } from "@/lib/stability-dates";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +19,13 @@ export default async function StabilityOverviewPage() {
 
   const now = new Date();
 
+  const isPassed = (s: string) => s === "passed" || s === "completed"; // completed = 레거시 값
   const rows = products
     .map((p) => {
       const doneBy = (bt: string) =>
-        p.stabilityReports.filter((r) => r.batchType === bt && r.status === "completed").length;
-      const completed = p.stabilityReports.filter((r) => r.status === "completed").length;
-      const hasRed = hasRedStability(
+        p.stabilityReports.filter((r) => r.batchType === bt && isPassed(r.status)).length;
+      const completed = p.stabilityReports.filter((r) => isPassed(r.status)).length;
+      const hasDelayed = hasDelayedStability(
         p.stabilityReports,
         p.stabilityBatches,
         STABILITY_BATCH_TYPES,
@@ -38,17 +39,17 @@ export default async function StabilityOverviewPage() {
         customer: p.customer,
         formulator: p.formulator,
         completed,
-        hasRed,
+        hasDelayed,
         trialDone: doneBy("trial"),
         prod1Done: doneBy("production_1"),
         prod2Done: doneBy("production_2"),
       };
     })
-    .sort((a, b) => Number(b.hasRed) - Number(a.hasRed) || b.completed - a.completed);
+    .sort((a, b) => Number(b.hasDelayed) - Number(a.hasDelayed) || b.completed - a.completed);
 
   const withAny = rows.filter((r) => r.completed > 0).length;
   const totalCompleted = rows.reduce((s, r) => s + r.completed, 0);
-  const redCount = rows.filter((r) => r.hasRed).length;
+  const delayedCount = rows.filter((r) => r.hasDelayed).length;
 
   return (
     <>
@@ -57,8 +58,8 @@ export default async function StabilityOverviewPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Drug Stability</h1>
           <p className="mt-1 text-sm text-gray-600">
-            제품별 장기 안정성 시험(2 배치 × 6 타임포인트 = 12 보고서) 현황.
-            보고서 파일을 업로드하면 자동으로 해당 타임포인트가 완료로 표시됩니다.
+            제품별 장기 안정성 시험(시험생산 1배치 + 본생산 2배치 × 6 타임포인트 = 18 보고서) 현황.
+            보고서 업로드 후 적합/부적합/특이사항을 선택하세요.
           </p>
         </div>
 
@@ -68,9 +69,9 @@ export default async function StabilityOverviewPage() {
           <Card label="제출된 보고서" value={totalCompleted} sub={`/ 총 ${rows.length * TOTAL_CELLS}`} />
           <Card
             label="지연 제품"
-            value={redCount}
-            sub={redCount > 0 ? "목표일 +30일 초과" : "모두 일정 내"}
-            tone={redCount > 0 ? "danger" : undefined}
+            value={delayedCount}
+            sub={delayedCount > 0 ? "목표일 +30일 초과" : "모두 일정 내"}
+            tone={delayedCount > 0 ? "delayed" : undefined}
           />
         </section>
 
@@ -94,7 +95,7 @@ export default async function StabilityOverviewPage() {
               {rows.map((r) => {
                 const pct = Math.round((r.completed / TOTAL_CELLS) * 100);
                 return (
-                  <tr key={r.id} className={`border-b hover:bg-gray-50 ${r.hasRed ? "bg-red-50/30" : ""}`}>
+                  <tr key={r.id} className={`border-b hover:bg-gray-50 ${r.hasDelayed ? "bg-purple-50/40" : ""}`}>
                     <td className="px-3 py-2 text-gray-500">{r.no ?? "-"}</td>
                     <td className="px-3 py-2 font-medium text-gray-900 max-w-[280px] truncate">
                       <Link href={`/stability/${r.id}`} className="hover:underline">
@@ -104,12 +105,12 @@ export default async function StabilityOverviewPage() {
                     <td className="px-3 py-2 text-gray-600">{r.customer ?? "-"}</td>
                     <td className="px-3 py-2 text-gray-600">{r.formulator ?? "-"}</td>
                     <td className="px-3 py-2 text-center">
-                      {r.hasRed ? (
+                      {r.hasDelayed ? (
                         <span
-                          className="inline-flex items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-700"
+                          className="inline-flex items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-medium text-purple-700"
                           title="목표일 +30일 경과 (지연)"
                         >
-                          <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                          <span className="inline-block w-2 h-2 rounded-full bg-purple-500" />
                           지연
                         </span>
                       ) : (
@@ -161,14 +162,14 @@ function Card({
   label: string;
   value: number;
   sub?: string;
-  tone?: "danger";
+  tone?: "delayed";
 }) {
-  const danger = tone === "danger";
+  const delayed = tone === "delayed";
   return (
-    <div className={`rounded-lg border p-4 ${danger ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"}`}>
-      <p className={`text-xs font-medium ${danger ? "text-red-700" : "text-gray-500"}`}>{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${danger ? "text-red-700" : "text-gray-900"}`}>{value}</p>
-      {sub ? <p className={`mt-0.5 text-xs ${danger ? "text-red-600" : "text-gray-400"}`}>{sub}</p> : null}
+    <div className={`rounded-lg border p-4 ${delayed ? "border-purple-300 bg-purple-50" : "border-gray-200 bg-white"}`}>
+      <p className={`text-xs font-medium ${delayed ? "text-purple-700" : "text-gray-500"}`}>{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${delayed ? "text-purple-700" : "text-gray-900"}`}>{value}</p>
+      {sub ? <p className={`mt-0.5 text-xs ${delayed ? "text-purple-600" : "text-gray-400"}`}>{sub}</p> : null}
     </div>
   );
 }

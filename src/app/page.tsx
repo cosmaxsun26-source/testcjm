@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Navbar from "@/components/Navbar";
 import ProductList from "@/components/ProductList";
 import { STABILITY_BATCH_TYPES, STABILITY_TIMEPOINTS } from "@/lib/constants";
-import { hasRedStability } from "@/lib/stability-dates";
+import { hasDelayedStability } from "@/lib/stability-dates";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function Home() {
   const now = new Date();
   const withRed = products.map((p) => ({
     ...p,
-    hasRedStability: hasRedStability(
+    hasDelayedStability: hasDelayedStability(
       p.stabilityReports,
       p.stabilityBatches,
       STABILITY_BATCH_TYPES,

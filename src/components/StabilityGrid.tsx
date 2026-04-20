@@ -7,6 +7,7 @@ import {
   STABILITY_BATCH_LABELS,
   STABILITY_TIMEPOINTS,
   STABILITY_TIMEPOINT_LABELS,
+  STABILITY_RESULT_STATUSES,
 } from "@/lib/constants";
 import { expectedDateFor, stabilityLight, type StabilityLight } from "@/lib/stability-dates";
 
@@ -39,18 +40,21 @@ const LIGHT_CLASS: Record<StabilityLight, string> = {
   green: "bg-green-500",
   yellow: "bg-yellow-400",
   red: "bg-red-500",
+  purple: "bg-purple-500",
   gray: "bg-gray-300",
 };
 const LIGHT_LABEL: Record<StabilityLight, string> = {
-  green: "업로드 완료",
+  green: "적합 (업로드 완료)",
   yellow: "일정 도래 전 또는 30일 유예 내",
-  red: "목표일 +30일 경과 (지연)",
-  gray: "일정 미설정 또는 해당없음",
+  red: "부적합 또는 특이사항",
+  purple: "지연 (목표일 +30일 경과, 미업로드)",
+  gray: "시작일 미설정 또는 해당없음",
 };
 const CELL_BG: Record<StabilityLight, string> = {
   green: "border-green-300 bg-green-50/40",
   yellow: "border-yellow-300 bg-yellow-50/40",
   red: "border-red-400 bg-red-50/60",
+  purple: "border-purple-400 bg-purple-50/60",
   gray: "border-gray-200 bg-gray-50/30",
 };
 
@@ -187,6 +191,19 @@ export default function StabilityGrid({
     }
   };
 
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const saveNote = async (batchType: string, timepoint: string, note: string) => {
+    const res = await fetch("/api/stability", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId, batchType, timepoint, note }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      upsertReport(updated);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Legend />
@@ -282,15 +299,44 @@ export default function StabilityGrid({
                           />
                         </label>
                         <select
-                          className="text-[10px] border rounded px-1 py-0.5 bg-white text-gray-600"
-                          value={status}
-                          onChange={(e) => handleStatus(batchType, tp, e.target.value)}
+                          className="text-[10px] border rounded px-1 py-0.5 bg-white text-gray-700"
+                          value={STABILITY_RESULT_STATUSES.some((s) => s.value === status) ? status : ""}
+                          onChange={(e) => handleStatus(batchType, tp, e.target.value || "pending")}
                           disabled={busy}
                         >
-                          <option value="pending">미진행</option>
-                          <option value="completed">완료</option>
-                          <option value="na">해당없음</option>
+                          <option value="">-- 선택 --</option>
+                          {STABILITY_RESULT_STATUSES.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
                         </select>
+                      </div>
+                    )}
+
+                    {status === "notes" && (
+                      <div className="mt-2">
+                        <textarea
+                          className="w-full rounded border border-red-200 bg-white px-1.5 py-1 text-xs text-gray-700 focus:border-red-400 outline-none"
+                          placeholder="특이사항 내용"
+                          rows={2}
+                          disabled={!canEdit}
+                          value={
+                            noteDrafts[`${batchType}:${tp}`] !== undefined
+                              ? noteDrafts[`${batchType}:${tp}`]
+                              : r?.note ?? ""
+                          }
+                          onChange={(e) =>
+                            setNoteDrafts((prev) => ({ ...prev, [`${batchType}:${tp}`]: e.target.value }))
+                          }
+                          onBlur={(e) => {
+                            const val = e.target.value;
+                            if ((r?.note ?? "") !== val) saveNote(batchType, tp, val);
+                          }}
+                        />
+                      </div>
+                    )}
+                    {status !== "notes" && r?.note && (
+                      <div className="mt-2 text-xs text-gray-500 italic">
+                        메모: {r.note}
                       </div>
                     )}
                   </div>
@@ -306,9 +352,10 @@ export default function StabilityGrid({
 
 function Legend() {
   const items: Array<{ light: StabilityLight; label: string }> = [
-    { light: "green", label: "업로드 완료" },
+    { light: "green", label: "적합" },
+    { light: "red", label: "부적합 / 특이사항" },
+    { light: "purple", label: "지연 (목표일 +30일 초과)" },
     { light: "yellow", label: "일정 전 / 30일 유예 내" },
-    { light: "red", label: "목표일 +30일 초과 (지연)" },
     { light: "gray", label: "시작일 미설정 / 해당없음" },
   ];
   return (

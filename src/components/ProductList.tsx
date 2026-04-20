@@ -28,7 +28,7 @@ interface Product {
   devStatus: string | null;
   targetDate: string | null;
   steps: ProcessStep[];
-  hasRedStability?: boolean;
+  hasDelayedStability?: boolean;
 }
 
 type SortKey = "devTeam" | "uvFilterType" | "formulator" | null;
@@ -331,12 +331,12 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
                         지연
                       </span>
                     ) : null}
-                    {p.hasRedStability ? (
+                    {p.hasDelayedStability ? (
                       <span
                         title="Drug Stability 목표일 +30일 경과"
-                        className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700"
+                        className="inline-flex items-center gap-0.5 rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700"
                       >
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-500" />
                         Stability
                       </span>
                     ) : null}
