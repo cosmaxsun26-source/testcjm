@@ -22,13 +22,19 @@ export async function GET(request: NextRequest) {
   const { id: productId, error: idError } = parseProductId(request.nextUrl.searchParams.get("productId"));
   if (idError) return idError;
 
-  const reports = await prisma.stabilityReport.findMany({
-    where: { productId },
-    include: { files: { orderBy: { uploadedAt: "asc" } } },
-    orderBy: [{ batchType: "asc" }, { timepoint: "asc" }],
-  });
+  const [reports, batches] = await Promise.all([
+    prisma.stabilityReport.findMany({
+      where: { productId },
+      include: { files: { orderBy: { uploadedAt: "asc" } } },
+      orderBy: [{ batchType: "asc" }, { timepoint: "asc" }],
+    }),
+    prisma.stabilityBatch.findMany({
+      where: { productId },
+      orderBy: { batchType: "asc" },
+    }),
+  ]);
 
-  return NextResponse.json(reports);
+  return NextResponse.json({ reports, batches });
 }
 
 export async function PATCH(request: NextRequest) {

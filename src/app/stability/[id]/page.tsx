@@ -25,6 +25,9 @@ export default async function StabilityDetailPage({
           include: { files: { orderBy: { uploadedAt: "asc" } } },
           orderBy: [{ batchType: "asc" }, { timepoint: "asc" }],
         },
+        stabilityBatches: {
+          orderBy: { batchType: "asc" },
+        },
       },
     }),
   ]);
@@ -59,6 +62,7 @@ export default async function StabilityDetailPage({
         <StabilityGrid
           productId={product.id}
           initialReports={product.stabilityReports}
+          initialBatches={product.stabilityBatches}
           canEdit={canEdit}
         />
       </main>
