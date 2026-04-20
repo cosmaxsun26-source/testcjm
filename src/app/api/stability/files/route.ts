@@ -46,12 +46,18 @@ export async function POST(request: NextRequest) {
   const bytes = await file.arrayBuffer();
   await writeFile(filePath, Buffer.from(bytes));
 
-  // upsert report + create file + auto-greenlight in a transaction
+  // 업로드 = 기본 "적합". 이후 사용자가 드롭다운에서 부적합/특이사항으로 override 가능.
+  // 이미 failed/notes로 수동 설정된 셀은 업로드만으로 passed로 되돌리지 않음.
   const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.stabilityReport.findUnique({
+      where: { productId_batchType_timepoint: { productId, batchType, timepoint } },
+      select: { status: true },
+    });
+    const keepStatus = existing && (existing.status === "failed" || existing.status === "notes");
     const report = await tx.stabilityReport.upsert({
       where: { productId_batchType_timepoint: { productId, batchType, timepoint } },
-      update: { status: "completed" },
-      create: { productId, batchType, timepoint, status: "completed" },
+      update: keepStatus ? {} : { status: "passed" },
+      create: { productId, batchType, timepoint, status: "passed" },
     });
     const created = await tx.stabilityFile.create({
       data: {

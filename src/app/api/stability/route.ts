@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession, requireEditor } from "@/lib/auth-helpers";
-import { STABILITY_BATCH_TYPES, STABILITY_TIMEPOINTS } from "@/lib/constants";
+import { STABILITY_BATCH_TYPES, STABILITY_TIMEPOINTS, STABILITY_VALID_STATUSES } from "@/lib/constants";
 
 function parseProductId(raw: string | null) {
   if (!raw) return { id: null as null, error: NextResponse.json({ error: "productId required" }, { status: 400 }) };
@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest) {
   if (!timepoint || !TP_SET.has(timepoint)) {
     return NextResponse.json({ error: "invalid timepoint" }, { status: 400 });
   }
-  if (status && !["pending", "completed", "na"].includes(status)) {
+  if (status && !STABILITY_VALID_STATUSES.includes(status)) {
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
   }
 
