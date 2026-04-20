@@ -44,12 +44,14 @@ model Product {
   devStatus       String?  // 개발사항: 개발중, 완료
   formulationConfirmed String? // 제형확정: 확정, 개발중
   activeIngredients    String? // 주성분구성
+  monographCheck       String? // 문안 확인: O, X, - (OTC 모노그래프 규정 확인 플래그)
 
   // 임상/시험
   clinicalTrial   String?  // 임상(기관명) 결과
   uniiCode        String?  // UNII CODE
   preservative    String?  // 방부력
   labBatchCT      String?  // 랩배치 CT
+  primaryPackaging String? // 1,2차포장/라벨
   tmvTmt          String?  // TMV/TMT
 
   // 시험생산

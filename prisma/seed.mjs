@@ -16,7 +16,7 @@ const prisma = new PrismaClient({ adapter });
 
 const ALL_STEP_KEYS = [
   "formulation_dev", "formulation_confirm", "active_ingredients", "clinical_trial",
-  "unii_code", "preservative", "lab_batch_ct", "tmv_tmt",
+  "unii_code", "preservative", "lab_batch_ct", "packaging_label", "tmv_tmt",
   "raw_material_qual", "trial_mfg", "bulk_shelf_life", "filling_packaging",
   "lab_stability", "drug_stability",
   "product_reg", "import_reg", "production_3batch", "validation_3batch",

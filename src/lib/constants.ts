@@ -11,6 +11,7 @@ export const PROCESS_PHASES = [
       { key: "unii_code", label: "UNII CODE", team: "SC1,2팀" },
       { key: "preservative", label: "방부력", team: "효능평가팀" },
       { key: "lab_batch_ct", label: "랩배치 CT", team: "RA팀(w/제형팀)" },
+      { key: "packaging_label", label: "1,2차포장/라벨", team: "마케팅/고객사" },
       { key: "tmv_tmt", label: "TMV/TMT", team: "미생물팀(T0,T2)" },
     ],
   },
