@@ -4,6 +4,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { requireEditor } from "@/lib/auth-helpers";
 import { recordStatusChange } from "@/lib/audit";
+import { FILE_UPLOADABLE_STEPS } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   const { session, error } = await requireEditor();
@@ -16,6 +17,13 @@ export async function POST(request: NextRequest) {
 
   if (!file || !productId || !stepKey) {
     return NextResponse.json({ error: "file, productId, stepKey 필수" }, { status: 400 });
+  }
+
+  if (!FILE_UPLOADABLE_STEPS.includes(stepKey)) {
+    return NextResponse.json(
+      { error: "이 단계에는 파일을 첨부할 수 없습니다" },
+      { status: 400 }
+    );
   }
 
   // 프로세스 단계 조회

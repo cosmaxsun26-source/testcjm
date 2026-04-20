@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { PROCESS_PHASES, CATEGORIES, UV_FILTER_TYPES, FORMULATION_TYPES, PRODUCT_TYPES, CONTAINER_TYPES, DEV_TEAMS } from "@/lib/constants";
+import { PROCESS_PHASES, CATEGORIES, UV_FILTER_TYPES, FORMULATION_TYPES, PRODUCT_TYPES, CONTAINER_TYPES, DEV_TEAMS, FILE_UPLOADABLE_STEPS } from "@/lib/constants";
 import { isOverdue } from "@/lib/overdue";
 
 interface StepFile {
@@ -402,8 +402,8 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                         </select>
                       </div>
 
-                      {/* 파일 목록 */}
-                      {files.length > 0 && (
+                      {/* 파일 목록 (허용 스텝만) */}
+                      {FILE_UPLOADABLE_STEPS.includes(stepDef.key) && files.length > 0 && (
                         <div className="mt-2 ml-6 space-y-1">
                           {files.map((f) => (
                             <div key={f.id} className="flex items-center gap-2 text-xs text-gray-600">
@@ -445,8 +445,8 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                         </div>
                       )}
 
-                      {/* 파일 업로드 */}
-                      {step && status !== "na" && (
+                      {/* 파일 업로드 (허용 스텝만) */}
+                      {FILE_UPLOADABLE_STEPS.includes(stepDef.key) && step && status !== "na" && (
                         <div className="mt-2 ml-6">
                           <label className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer">
                             <span>+ 파일 첨부</span>

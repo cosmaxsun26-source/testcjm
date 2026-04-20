@@ -43,6 +43,15 @@ export const PROCESS_PHASES = [
 
 export const ALL_STEPS: { key: string; label: string; team: string }[] = PROCESS_PHASES.flatMap((phase) => [...phase.steps]);
 
+// 파일 첨부가 허용된 단계. 임상/방부력/랩배치 CT/TMV/TMT 4개만 규제
+// 문서(시험성적서 등)가 필수라서 화이트리스트로 제한.
+export const FILE_UPLOADABLE_STEPS: readonly string[] = [
+  "clinical_trial",
+  "preservative",
+  "lab_batch_ct",
+  "tmv_tmt",
+];
+
 export const STEP_STATUS_OPTIONS = [
   { value: "pending", label: "미진행", color: "bg-gray-200 text-gray-700" },
   { value: "in_progress", label: "진행중", color: "bg-blue-100 text-blue-700" },
