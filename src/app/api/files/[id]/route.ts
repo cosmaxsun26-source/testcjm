@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { readFile, unlink } from "fs/promises";
 import path from "path";
+import { requireSession, requireEditor } from "@/lib/auth-helpers";
+import { recordStatusChange } from "@/lib/audit";
 
 // 파일 다운로드
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { error } = await requireSession();
+  if (error) return error;
+
   const { id } = await params;
   const stepFile = await prisma.stepFile.findUnique({
     where: { id: parseInt(id) },
@@ -44,6 +49,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { session, error } = await requireEditor();
+  if (error) return error;
+
   const { id } = await params;
   const stepFile = await prisma.stepFile.findUnique({
     where: { id: parseInt(id) },
@@ -64,17 +72,27 @@ export async function DELETE(
   );
   try { await unlink(filePath); } catch { /* 이미 없을 수 있음 */ }
 
-  // DB에서 삭제
-  await prisma.stepFile.delete({ where: { id: parseInt(id) } });
-
-  // 해당 단계에 파일이 더 이상 없으면 상태를 pending으로 되돌림
   const remainingFiles = stepFile.step.files.length - 1;
-  if (remainingFiles <= 0) {
-    await prisma.processStep.update({
-      where: { id: stepFile.step.id },
-      data: { status: "pending", completedDate: null },
-    });
-  }
+  const shouldRevert = remainingFiles <= 0;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.stepFile.delete({ where: { id: parseInt(id) } });
+
+    if (shouldRevert) {
+      await tx.processStep.update({
+        where: { id: stepFile.step.id },
+        data: { status: "pending", completedDate: null },
+      });
+      await recordStatusChange(tx, {
+        stepId: stepFile.step.id,
+        productId: stepFile.step.productId,
+        oldStatus: stepFile.step.status,
+        newStatus: "pending",
+        changedByUserId: session.user.id,
+        note: `파일 삭제로 자동 되돌림: ${stepFile.originalName}`,
+      });
+    }
+  });
 
   return NextResponse.json({ success: true });
 }
