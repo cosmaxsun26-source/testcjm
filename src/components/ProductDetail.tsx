@@ -296,7 +296,7 @@ export default function ProductDetail({ product }: { product: Product | null }) 
               <Field label="개발팀" field="devTeam" options={DEV_TEAMS} />
               <Field label="제형담당" field="formulator" />
               <Field label="영업담당" field="salesManager" />
-              <Field label="완료 목표일" field="targetDate" />
+              <Field label="완료 목표일" field="targetDate" type="month" />
               <Field label="개발사항" field="devStatus" />
               <Field label="제형확정" field="formulationConfirmed" />
             </div>
@@ -373,7 +373,7 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                         <label className="flex items-center gap-1 text-xs text-gray-500">
                           <span className="hidden md:inline">목표일</span>
                           <input
-                            type="date"
+                            type="month"
                             className={`rounded border px-1.5 py-0.5 text-xs ${
                               overdue ? "border-red-400 text-red-700" : "border-gray-200 text-gray-600"
                             }`}

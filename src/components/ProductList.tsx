@@ -39,6 +39,7 @@ const KEY_STEPS = [
   { key: "preservative", label: "방부력" },
   { key: "tmv_tmt", label: "TMV/TMT" },
   { key: "trial_mfg", label: "시험제조" },
+  { key: "production_3batch", label: "본생산" },
 ] as const;
 
 function StepLight({ steps, stepKey }: { steps: ProcessStep[]; stepKey: string }) {
@@ -177,12 +178,6 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
     sortDir,
   ]);
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`"${name}" 제품을 삭제하시겠습니까?`)) return;
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
-    router.refresh();
-  };
-
   const hasActiveFilter =
     !!search ||
     !!categoryFilter ||
@@ -292,7 +287,6 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
               ))}
               <th className="px-3 py-2 font-medium text-gray-600 w-28">진행률</th>
               <th className="px-3 py-2 font-medium text-gray-600">상태</th>
-              <th className="px-3 py-2 font-medium text-gray-600"></th>
             </tr>
           </thead>
           <tbody>
@@ -341,17 +335,6 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
                       </span>
                     ) : null}
                   </div>
-                </td>
-                <td className="px-3 py-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(p.id, p.productName);
-                    }}
-                    className="text-red-400 hover:text-red-600 text-xs"
-                  >
-                    삭제
-                  </button>
                 </td>
               </tr>
             ))}
