@@ -52,6 +52,25 @@ export const FILE_UPLOADABLE_STEPS: readonly string[] = [
   "tmv_tmt",
 ];
 
+// Drug Stability: 2 배치 × 6 타임포인트 = 12 데이터 포인트
+export const STABILITY_BATCH_TYPES = ["trial", "production"] as const;
+export type StabilityBatchType = (typeof STABILITY_BATCH_TYPES)[number];
+export const STABILITY_BATCH_LABELS: Record<StabilityBatchType, string> = {
+  trial: "시험생산 (1배치)",
+  production: "본생산 (2배치 이후)",
+};
+
+export const STABILITY_TIMEPOINTS = ["3m", "6m", "9m", "12m", "18m", "24m"] as const;
+export type StabilityTimepoint = (typeof STABILITY_TIMEPOINTS)[number];
+export const STABILITY_TIMEPOINT_LABELS: Record<StabilityTimepoint, string> = {
+  "3m": "3개월",
+  "6m": "6개월",
+  "9m": "9개월",
+  "12m": "12개월",
+  "18m": "18개월",
+  "24m": "24개월",
+};
+
 export const STEP_STATUS_OPTIONS = [
   { value: "pending", label: "미진행", color: "bg-gray-200 text-gray-700" },
   { value: "in_progress", label: "진행중", color: "bg-blue-100 text-blue-700" },

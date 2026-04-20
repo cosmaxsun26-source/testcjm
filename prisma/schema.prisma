@@ -75,6 +75,7 @@ model Product {
   // 프로세스 단계 상태 추적 (pending, in_progress, completed, na)
   steps     ProcessStep[]
   histories StepHistory[]
+  stabilityReports StabilityReport[]
 }
 
 model ProcessStep {
@@ -100,6 +101,35 @@ model StepFile {
   originalName String     // 원본 파일명
   fileSize     Int         // 바이트
   uploadedAt   DateTime    @default(now())
+}
+
+// Drug Stability 장기 안정성 시험 보고서 (2 배치 × 6 타임포인트)
+// batchType: trial = 시험생산 1배치, production = 본생산 2배치
+// timepoint: 3m / 6m / 9m / 12m / 18m / 24m
+model StabilityReport {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchType   String
+  timepoint   String
+  status      String   @default("pending") // pending | completed | na
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  files       StabilityFile[]
+
+  @@unique([productId, batchType, timepoint])
+  @@index([productId])
+}
+
+model StabilityFile {
+  id           Int             @id @default(autoincrement())
+  reportId     Int
+  report       StabilityReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  fileName     String
+  originalName String
+  fileSize     Int
+  uploadedAt   DateTime        @default(now())
 }
 
 model User {
