@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Navbar from "@/components/Navbar";
 import { PROCESS_PHASES, ALL_STEPS, CATEGORIES, STEP_STATUS_OPTIONS } from "@/lib/constants";
+import { isOverdue } from "@/lib/overdue";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,22 @@ export default async function DashboardPage() {
     }
   }
 
+  const now = new Date();
+  const overdueItems = products
+    .flatMap((p) =>
+      p.steps
+        .filter((s) => isOverdue(s.dueDate, s.status, now))
+        .map((s) => ({
+          productId: p.id,
+          productName: p.productName,
+          formulator: p.formulator,
+          stepKey: s.stepKey,
+          dueDate: s.dueDate,
+          status: s.status,
+        }))
+    )
+    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
+
   const phaseProgress = PROCESS_PHASES.map((phase) => {
     const phaseKeys = new Set<string>(phase.steps.map((s) => s.key));
     let total = 0;
@@ -91,7 +108,46 @@ export default async function DashboardPage() {
             value={statusCounts.completed}
             sub={`진행중 ${statusCounts.in_progress} · 대기 ${statusCounts.pending}`}
           />
+          <Card
+            label="지연 단계"
+            value={overdueItems.length}
+            sub={overdueItems.length > 0 ? "목표일 초과" : "모두 일정 내"}
+            tone={overdueItems.length > 0 ? "danger" : undefined}
+          />
         </section>
+
+        {overdueItems.length > 0 && (
+          <section className="rounded-lg border border-red-200 bg-red-50/40 p-4">
+            <h2 className="mb-3 text-sm font-semibold text-red-700">
+              지연 항목 ({overdueItems.length})
+            </h2>
+            <ul className="divide-y divide-red-100">
+              {overdueItems.map((item) => (
+                <li
+                  key={`${item.productId}-${item.stepKey}`}
+                  className="flex items-center gap-3 py-2 text-sm"
+                >
+                  <span className="inline-flex shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+                    지연
+                  </span>
+                  <Link
+                    href={`/products/${item.productId}`}
+                    className="truncate max-w-[22ch] text-gray-900 hover:underline"
+                  >
+                    {item.productName}
+                  </Link>
+                  <span className="text-gray-500">
+                    {STEP_LABEL.get(item.stepKey) ?? item.stepKey}
+                  </span>
+                  <span className="ml-auto text-xs text-gray-500">
+                    목표일 {item.dueDate}
+                    {item.formulator ? ` · ${item.formulator}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="rounded-lg border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-700">단계별 진척도</h2>
@@ -171,12 +227,47 @@ export default async function DashboardPage() {
   );
 }
 
-function Card({ label, value, sub }: { label: string; value: number; sub?: string }) {
+function Card({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: number;
+  sub?: string;
+  tone?: "danger";
+}) {
+  const isDanger = tone === "danger";
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
-      {sub ? <p className="mt-0.5 text-xs text-gray-400">{sub}</p> : null}
+    <div
+      className={`rounded-lg border p-4 ${
+        isDanger ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"
+      }`}
+    >
+      <p
+        className={`text-xs font-medium ${
+          isDanger ? "text-red-700" : "text-gray-500"
+        }`}
+      >
+        {label}
+      </p>
+      <p
+        className={`mt-1 text-2xl font-bold ${
+          isDanger ? "text-red-700" : "text-gray-900"
+        }`}
+      >
+        {value}
+      </p>
+      {sub ? (
+        <p
+          className={`mt-0.5 text-xs ${
+            isDanger ? "text-red-600" : "text-gray-400"
+          }`}
+        >
+          {sub}
+        </p>
+      ) : null}
     </div>
   );
 }

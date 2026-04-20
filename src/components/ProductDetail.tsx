@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PROCESS_PHASES, CATEGORIES, UV_FILTER_TYPES, FORMULATION_TYPES, PRODUCT_TYPES, CONTAINER_TYPES, DEV_TEAMS } from "@/lib/constants";
+import { isOverdue } from "@/lib/overdue";
 
 interface StepFile {
   id: number;
@@ -336,10 +337,15 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                   const step = steps.find((s) => s.stepKey === stepDef.key);
                   const status = step?.status || "pending";
                   const files = step?.files || [];
+                  const overdue = step ? isOverdue(step.dueDate, step.status) : false;
                   return (
                     <div
                       key={stepDef.key}
-                      className="py-2 px-3 rounded border border-gray-100 hover:border-gray-200"
+                      className={`py-2 px-3 rounded border ${
+                        overdue
+                          ? "border-red-300 bg-red-50/40"
+                          : "border-gray-100 hover:border-gray-200"
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <span
@@ -348,8 +354,13 @@ export default function ProductDetail({ product }: { product: Product | null }) 
                           }`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-800">
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
                             {stepDef.label}
+                            {overdue ? (
+                              <span className="inline-flex rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+                                지연 (목표일 {step?.dueDate})
+                              </span>
+                            ) : null}
                           </div>
                           <div className="text-xs text-gray-400">{stepDef.team}</div>
                         </div>

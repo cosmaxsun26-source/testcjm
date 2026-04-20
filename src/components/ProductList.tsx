@@ -4,11 +4,13 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ProgressBar from "./ProgressBar";
 import StatusBadge from "./StatusBadge";
+import { isOverdue } from "@/lib/overdue";
 
 interface ProcessStep {
   id: number;
   stepKey: string;
   status: string;
+  dueDate: string | null;
   files: { id: number }[];
 }
 
@@ -318,7 +320,17 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
                   <ProgressBar steps={p.steps} />
                 </td>
                 <td className="px-3 py-2">
-                  <StatusBadge status={getOverallStatus(p.steps)} size="xs" />
+                  <div className="flex items-center gap-1">
+                    <StatusBadge status={getOverallStatus(p.steps)} size="xs" />
+                    {p.steps.some((s) => isOverdue(s.dueDate, s.status)) ? (
+                      <span
+                        title="지연된 단계 있음"
+                        className="inline-flex rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700"
+                      >
+                        지연
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
                 <td className="px-3 py-2">
                   <button
