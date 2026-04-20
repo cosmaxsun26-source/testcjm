@@ -72,6 +72,17 @@ export const STABILITY_TIMEPOINT_LABELS: Record<StabilityTimepoint, string> = {
   "24m": "24개월",
 };
 
+// 안정성 시험 결과 상태. 드롭다운에 노출되는 값.
+// 내부적으로 status="pending"(선택 안 함)과 하위 3개 값 + 삭제된 상태만 사용.
+export const STABILITY_RESULT_STATUSES = [
+  { value: "passed", label: "적합" },
+  { value: "failed", label: "부적합" },
+  { value: "notes", label: "특이사항" },
+] as const;
+export const STABILITY_RESULT_VALUES = STABILITY_RESULT_STATUSES.map((s) => s.value) as readonly string[];
+// API가 받아들이는 상태 집합 (pending 포함)
+export const STABILITY_VALID_STATUSES: readonly string[] = ["pending", ...STABILITY_RESULT_VALUES];
+
 export const STEP_STATUS_OPTIONS = [
   { value: "pending", label: "미진행", color: "bg-gray-200 text-gray-700" },
   { value: "in_progress", label: "진행중", color: "bg-blue-100 text-blue-700" },

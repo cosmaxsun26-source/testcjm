@@ -3,7 +3,7 @@ import { STABILITY_TIMEPOINTS, type StabilityTimepoint } from "./constants";
 const GRACE_DAYS = 30;
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-export type StabilityLight = "green" | "yellow" | "red" | "gray";
+export type StabilityLight = "green" | "yellow" | "red" | "purple" | "gray";
 
 export function parseIsoDate(raw: string | null | undefined): Date | null {
   if (!raw) return null;
@@ -49,17 +49,20 @@ export function stabilityLight(
   timepoint: StabilityTimepoint | string,
   now: Date = new Date()
 ): StabilityLight {
-  if (status === "completed") return "green";
+  // 결과 상태 — 일정과 무관
+  if (status === "passed") return "green";
+  if (status === "failed" || status === "notes") return "red";
   if (status === "na") return "gray";
 
+  // 일정 기반 — pending 상태에서만 평가
   const expected = parseIsoDate(expectedDateFor(startDate, timepoint));
   if (!expected) return "gray";
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const redThreshold = new Date(expected);
-  redThreshold.setDate(redThreshold.getDate() + GRACE_DAYS);
+  const delayThreshold = new Date(expected);
+  delayThreshold.setDate(delayThreshold.getDate() + GRACE_DAYS);
 
-  if (today > redThreshold) return "red";
+  if (today > delayThreshold) return "purple"; // 지연
   return "yellow";
 }
 
@@ -72,10 +75,10 @@ export function allExpectedDates(startDate: string | null | undefined): Record<s
   return out;
 }
 
-// Whether the product currently has ANY stability cell in the RED zone
-// (expected + 30 days passed without an uploaded/completed report).
-// Cells for batches without a startDate cannot be red, so they are safely ignored.
-export function hasRedStability(
+// 제품에 지연(purple) 셀이 하나라도 있는지. 즉 예상일 +30일이 지났는데
+// 아직 보고서가 업로드되지 않은(pending) 셀. startDate 미설정 배치는
+// 지연 대상이 아니다.
+export function hasDelayedStability(
   reports: Array<{ batchType: string; timepoint: string; status: string }>,
   batches: Array<{ batchType: string; startDate: string | null }>,
   batchTypes: readonly string[],
@@ -89,10 +92,10 @@ export function hasRedStability(
 
   for (const bt of batchTypes) {
     const start = startByType.get(bt);
-    if (!start) continue; // no start → no expected dates → no red possible
+    if (!start) continue;
     for (const tp of timepoints) {
       const r = reportByKey.get(`${bt}:${tp}`);
-      if (stabilityLight(r?.status, start, tp, now) === "red") return true;
+      if (stabilityLight(r?.status, start, tp, now) === "purple") return true;
     }
   }
   return false;
