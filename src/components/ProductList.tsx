@@ -28,6 +28,7 @@ interface Product {
   devStatus: string | null;
   targetDate: string | null;
   steps: ProcessStep[];
+  hasRedStability?: boolean;
 }
 
 type SortKey = "devTeam" | "uvFilterType" | "formulator" | null;
@@ -320,7 +321,7 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
                   <ProgressBar steps={p.steps} />
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
                     <StatusBadge status={getOverallStatus(p.steps)} size="xs" />
                     {p.steps.some((s) => isOverdue(s.dueDate, s.status)) ? (
                       <span
@@ -328,6 +329,15 @@ export default function ProductList({ initialProducts }: { initialProducts: Prod
                         className="inline-flex rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700"
                       >
                         지연
+                      </span>
+                    ) : null}
+                    {p.hasRedStability ? (
+                      <span
+                        title="Drug Stability 목표일 +30일 경과"
+                        className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                        Stability
                       </span>
                     ) : null}
                   </div>

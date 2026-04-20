@@ -71,3 +71,29 @@ export function allExpectedDates(startDate: string | null | undefined): Record<s
   }
   return out;
 }
+
+// Whether the product currently has ANY stability cell in the RED zone
+// (expected + 30 days passed without an uploaded/completed report).
+// Cells for batches without a startDate cannot be red, so they are safely ignored.
+export function hasRedStability(
+  reports: Array<{ batchType: string; timepoint: string; status: string }>,
+  batches: Array<{ batchType: string; startDate: string | null }>,
+  batchTypes: readonly string[],
+  timepoints: readonly string[],
+  now: Date = new Date()
+): boolean {
+  const reportByKey = new Map<string, { status: string }>();
+  for (const r of reports) reportByKey.set(`${r.batchType}:${r.timepoint}`, r);
+  const startByType = new Map<string, string | null>();
+  for (const b of batches) startByType.set(b.batchType, b.startDate);
+
+  for (const bt of batchTypes) {
+    const start = startByType.get(bt);
+    if (!start) continue; // no start → no expected dates → no red possible
+    for (const tp of timepoints) {
+      const r = reportByKey.get(`${bt}:${tp}`);
+      if (stabilityLight(r?.status, start, tp, now) === "red") return true;
+    }
+  }
+  return false;
+}
