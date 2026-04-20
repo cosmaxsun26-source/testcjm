@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ProductDetail from "@/components/ProductDetail";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,10 @@ export default async function ProductPage({
   const { id } = await params;
 
   if (id === "new") {
+    const session = await auth();
+    if (session?.user?.role !== "admin") {
+      redirect("/");
+    }
     return (
       <>
         <Navbar />

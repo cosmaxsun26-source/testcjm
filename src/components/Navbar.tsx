@@ -4,7 +4,7 @@ import SignOutButton from "@/components/SignOutButton";
 
 export default async function Navbar() {
   const session = await auth();
-  const canEdit = session?.user?.role === "editor" || session?.user?.role === "admin";
+  const isAdmin = session?.user?.role === "admin";
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-3">
@@ -19,7 +19,7 @@ export default async function Navbar() {
           <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
             대시보드
           </Link>
-          {canEdit ? (
+          {isAdmin ? (
             <Link
               href="/products/new"
               className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700"

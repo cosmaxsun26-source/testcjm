@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession, requireEditor } from "@/lib/auth-helpers";
+import { requireSession, requireEditor, requireAdmin } from "@/lib/auth-helpers";
 import { recordStatusChange } from "@/lib/audit";
 
 export async function GET(
@@ -94,7 +94,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireEditor();
+  const { error } = await requireAdmin();
   if (error) return error;
 
   const { id } = await params;
