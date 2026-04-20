@@ -20,12 +20,17 @@ export default async function Navbar() {
             대시보드
           </Link>
           {isAdmin ? (
-            <Link
-              href="/products/new"
-              className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700"
-            >
-              + 신규 등록
-            </Link>
+            <>
+              <Link href="/admin/import" className="text-sm text-gray-600 hover:text-gray-900">
+                임포트
+              </Link>
+              <Link
+                href="/products/new"
+                className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700"
+              >
+                + 신규 등록
+              </Link>
+            </>
           ) : null}
           <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
             <div className="text-right">
